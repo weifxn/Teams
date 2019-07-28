@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import logo from './assets/stc-logo.svg';
 import './App.css';
 import data from './data.js'
@@ -10,10 +10,75 @@ import * as Icon from 'react-feather';
 import Modal from 'react-modal';
 import DayPickerInput from 'react-day-picker/DayPickerInput';
 import 'react-day-picker/lib/style.css';
+import firebase from './firebase'
+import MomentLocaleUtils, {
+  formatDate,
+  parseDate,
+} from 'react-day-picker/moment';
 
 function App() {
   const [date, setDate] = useState()
+  const [title, setTitle] = useState()
+  const [content, setContent] = useState()
+
+  const [items, setItems] = useState([])
+  const [isLoading, setLoading] = useState(true)
+
   const [showModal, setModal] = useState(false)
+
+  useEffect(() => {
+    getData()
+  }, [])
+
+  const checkDone = (list) => {
+    if (isLoading) {
+      setItems(list)
+      console.log(JSON.stringify(list))
+    }
+  }
+
+  const getData = () => {
+    firebase
+      .database()
+      .ref()
+      .child("stc-teams")
+      .on('value', snap => {
+        if (snap !== null) {
+          var list = []
+          snap.forEach(item => {
+            const data = item.val()
+            var payload = {
+              date: data.date,
+              title: data.title,
+              content: data.content
+            }
+            list = [payload, ...list]
+            
+          });
+          setLoading(false)
+          checkDone(list)
+
+        }
+      })
+  }
+
+  function onSubmit() {
+    const payload = {
+      date: formatDate(date, 'LL', 'it'),
+      title,
+      content
+    }
+    console.log(payload)
+    firebase
+      .database()
+      .ref()
+      .child("stc-teams")
+      .push(payload)
+      .then(ref => {
+        setModal(false);
+      })
+  }
+
   const header = () => (
     <header className="App-header">
       <img src={logo} className="App-logo" alt="logo" />
@@ -25,7 +90,8 @@ function App() {
     <div style={{ alignItems: 'center', display: 'flex', marginTop: -31 }}>
       <VerticalTimeline layout="1-column">
         {
-          data.map((item, index) => (
+          items &&
+          items.map((item, index) => (
             <VerticalTimelineElement
               style={{ width: '95%' }}
               date={item.date}
@@ -69,14 +135,16 @@ function App() {
       <p><input
         className="titleInput"
         type="text"
+        value={title}
         placeholder="Title"
-      />
+        onChange={e => setTitle(e.target.value)} />
       </p>
       <p><textarea rows="4" cols="50"
         className="contentInput"
         type="text"
+        value={content}
         placeholder="content"
-      />
+        onChange={e => setContent(e.target.value)} />
       </p>
     </div>
   )
@@ -84,14 +152,21 @@ function App() {
   const datepicker = () => (
     <DayPickerInput
       className="teamInput"
+      formatDate={formatDate}
+        parseDate={parseDate}
+        format="LL"
+        placeholder={`${formatDate(new Date(), 'LL', 'it')}`}
+        dayPickerProps={{
+          locale: 'it',
+          localeUtils: MomentLocaleUtils,
+        }}
       style={{ marginLeft: 10 }}
-      onChange={setDate}
-    />
+      onDayChange={day => setDate(day)} />
   )
 
   const buttons = () => (
     <div className="buttonsContainer">
-      <div onClick={() => setModal(false)} className="submitButton">Submit</div>
+      <div onClick={() => onSubmit()} className="submitButton">Submit</div>
       <div onClick={() => setModal(false)}>Back</div>
     </div>
   )
