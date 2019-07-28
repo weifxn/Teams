@@ -32,7 +32,7 @@ function App() {
 
   const checkDone = (list) => {
     if (isLoading) {
-      setItems(list)
+      setItems(list.sort(sortFunction))
       console.log(JSON.stringify(list))
     }
   }
@@ -63,6 +63,8 @@ function App() {
   }
 
   function onSubmit() {
+    setModal(false);
+
     const payload = {
       date: formatDate(date, 'LL', 'it'),
       title,
@@ -75,7 +77,6 @@ function App() {
       .child("stc-teams")
       .push(payload)
       .then(ref => {
-        setModal(false);
       })
   }
 
@@ -87,7 +88,7 @@ function App() {
   )
 
   const timeline = () => (
-    <div style={{ alignItems: 'center', display: 'flex', marginTop: -31 }}>
+    <div style={{ alignItems: 'center', display: 'flex'}}>
       <VerticalTimeline layout="1-column">
         {
           items &&
@@ -98,7 +99,7 @@ function App() {
               iconStyle={{ background: `${item.color}`, color: '#fff' }}
             >
               <h1 className="noselect" style={{ color: 'black' }}>{item.title}</h1>
-              <p>{item.content}</p>
+              <p className="display-linebreak">{item.content}</p>
             </VerticalTimelineElement>
           ))
         }
@@ -183,3 +184,8 @@ function App() {
 
 export default App;
 
+function sortFunction(a,b){  
+  var dateA = new Date(a.date).getTime();
+  var dateB = new Date(b.date).getTime();
+  return dateA > dateB ? 1 : -1;  
+}; 
