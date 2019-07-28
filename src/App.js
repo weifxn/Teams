@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import logo from './assets/stc-logo.svg';
 import './App.css';
-import data from './data.js'
 import { VerticalTimeline, VerticalTimelineElement } from 'react-vertical-timeline-component';
 import 'react-vertical-timeline-component/style.min.css';
 import { Fab, Action } from 'react-tiny-fab';
@@ -16,11 +15,11 @@ import MomentLocaleUtils, {
   parseDate,
 } from 'react-day-picker/moment';
 
-function App() {
+const App = () => {
   const [date, setDate] = useState()
   const [title, setTitle] = useState()
   const [content, setContent] = useState()
-
+  const [showIndex, setShowIndex] = useState([])
   const [items, setItems] = useState([])
   const [isLoading, setLoading] = useState(true)
 
@@ -30,12 +29,7 @@ function App() {
     getData()
   }, [])
 
-  const checkDone = (list) => {
-    if (isLoading) {
-      setItems(list.sort(sortFunction))
-      console.log(JSON.stringify(list))
-    }
-  }
+  
 
   const getData = () => {
     firebase
@@ -43,34 +37,28 @@ function App() {
       .ref()
       .child("stc-teams")
       .on('value', snap => {
+        
         if (snap !== null) {
-          var list = []
-          snap.forEach(item => {
-            const data = item.val()
-            var payload = {
-              date: data.date,
-              title: data.title,
-              content: data.content
-            }
-            list = [payload, ...list]
-            
-          });
-          setLoading(false)
-          checkDone(list)
-
+          const data = snap.val()
+            const list = Object.keys(data).map(key => ({
+              ...data[key],
+              show: true,
+              id: key
+            }))
+            setItems(list)
         }
+        setLoading(false)
       })
   }
 
-  function onSubmit() {
+  const onSubmit = () => {
     setModal(false);
-
     const payload = {
       date: formatDate(date, 'LL', 'it'),
       title,
       content
     }
-    console.log(payload)
+    setItems([payload, ...items])
     firebase
       .database()
       .ref()
@@ -78,6 +66,13 @@ function App() {
       .push(payload)
       .then(ref => {
       })
+  }
+
+  const toggleShow = index => {
+    var temp = items
+    temp[index].show = !temp[index].show
+    console.log(JSON.stringify(temp))
+    setItems(items)
   }
 
   const header = () => (
@@ -91,16 +86,32 @@ function App() {
     <div style={{ alignItems: 'center', display: 'flex'}}>
       <VerticalTimeline layout="1-column">
         {
-          items &&
-          items.map((item, index) => (
-            <VerticalTimelineElement
+          
+          items.sort(sortFunction).map((item, index) => (
+            <div style={{marginBottom: 30}} >
+              { item.show === true ? 
+                <VerticalTimelineElement
+                style={{ width: '95%' }}
+                date={item.date}
+                iconStyle={{ background: `${item.color}`, color: '#fff' }}
+              >
+                <h1 className="noselect" style={{ color: 'black' }}>{item.title}</h1>
+                <p className="display-linebreak">{item.content}</p>
+                <div style={{marginBottom: 30}} onClick={() => toggleShow(index)} > show less </div>
+              </VerticalTimelineElement>
+              :
+              <VerticalTimelineElement
               style={{ width: '95%' }}
               date={item.date}
               iconStyle={{ background: `${item.color}`, color: '#fff' }}
             >
               <h1 className="noselect" style={{ color: 'black' }}>{item.title}</h1>
-              <p className="display-linebreak">{item.content}</p>
+              <div style={{marginBottom: 30}} onClick={() => toggleShow(index)} > show more </div>
+
             </VerticalTimelineElement>
+              }
+            
+            </div>
           ))
         }
       </VerticalTimeline>
@@ -174,10 +185,17 @@ function App() {
 
   return (
     <div className="App">
-      {header()}
-      {timeline()}
-      {fab()}
-      {modal()}
+      {!isLoading ?
+        <> 
+        {header()}
+        {timeline()}
+        {fab()}
+        {modal()}
+        </>
+      :
+        <div />
+    }
+      
     </div>
   );
 }
