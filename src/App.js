@@ -75,6 +75,19 @@ const App = () => {
     setItems(items)
   }
 
+  const onDelete = index => {
+    var temp = items
+    temp.splice(index, 1)
+    setItems(temp)
+    firebase
+      .database()
+      .ref()
+      .child("stc-teams")
+      .set(items)
+      .then(()=>console.log(items))
+
+  }
+
   const header = () => (
     <header className="App-header">
       <img src={logo} className="App-logo" alt="logo" />
@@ -86,7 +99,6 @@ const App = () => {
     <div style={{ alignItems: 'center', display: 'flex'}}>
       <VerticalTimeline layout="1-column">
         {
-          
           items.sort(sortFunction).map((item, index) => (
             <div style={{marginBottom: 30}} >
               { item.show === true ? 
@@ -97,7 +109,10 @@ const App = () => {
               >
                 <h1 className="noselect" style={{ color: 'black' }}>{item.title}</h1>
                 <p className="display-linebreak">{item.content}</p>
-                <div style={{marginBottom: 30}} onClick={() => toggleShow(index)} > show less </div>
+                <div style={{display: 'flex', flexDirection: 'row'}}>
+                <div style={{margin: 10}} onClick={() => onDelete(index)}><Icon.Trash /></div>
+                <div style={{margin: 10}} onClick={() => onDelete(index)}><Icon.Edit /></div>
+                </div>
               </VerticalTimelineElement>
               :
               <VerticalTimelineElement
@@ -107,7 +122,6 @@ const App = () => {
             >
               <h1 className="noselect" style={{ color: 'black' }}>{item.title}</h1>
               <div style={{marginBottom: 30}} onClick={() => toggleShow(index)} > show more </div>
-
             </VerticalTimelineElement>
               }
             
