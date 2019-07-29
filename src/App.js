@@ -23,7 +23,7 @@ const App = () => {
   const [items, setItems] = useState([])
   const [isLoading, setLoading] = useState(true)
   const [isEdit, setEdit] = useState()
-
+  const [color, setColor] = useState('#F28779')
   const [showModal, setModal] = useState(false)
 
   useEffect(() => {
@@ -39,7 +39,7 @@ const App = () => {
       .child("stc-teams")
       .on('value', snap => {
 
-        if (snap !== null) {
+        if (snap.val() !== null) {
           const data = snap.val()
           const list = Object.keys(data).map(key => ({
             ...data[key],
@@ -58,9 +58,10 @@ const App = () => {
         date: formatDate(date, 'LL', 'it'),
         title,
         content,
-        show: true
+        show: true,
+        color,
       }
-      if (isEdit) {
+      if (isEdit != null) {
         var temp = items
         temp[isEdit] = payload
         firebase
@@ -74,7 +75,8 @@ const App = () => {
             setItems(temp)
           })
       } else {
-        setItems([payload, ...items].sort(sortFunction))
+        var tempData = [payload, ...items]
+        setItems(tempData)
         firebase
           .database()
           .ref()
@@ -139,13 +141,13 @@ const App = () => {
     <div style={{ alignItems: 'center', display: 'flex' }}>
       <VerticalTimeline layout="1-column">
         {
-          items.map((item, index) => (
+          items.sort(sortFunction).map((item, index) => (
             <div style={{ marginBottom: 30 }} >
               {item.show === false ?
                 <VerticalTimelineElement
                   style={{ width: '95%' }}
                   date={item.date}
-                  iconStyle={{ background: `${item.color}`, color: '#fff' }}
+                  iconStyle={{ background: `${item.color}`, color: '#000', height: 20, width: 20, margin: 10 }}
                 >
                   <h1 className="noselect" style={{ color: 'black' }} onClick={() => toggleShow(index)}>{item.title}</h1>
                   <p className="display-linebreak">{item.content}</p>
@@ -159,7 +161,7 @@ const App = () => {
                 <VerticalTimelineElement
                   style={{ width: '95%' }}
                   date={item.date}
-                  iconStyle={{ background: `${item.color}`, color: '#fff' }}
+                  iconStyle={{ background: `${item.color}`, color: '#000', height: 20, width: 20, margin: 10 }}
                 >
                   <h1 className="noselect" style={{ color: 'black' }} onClick={() => toggleShow(index)}>{item.title}</h1>
                 </VerticalTimelineElement>
@@ -190,10 +192,22 @@ const App = () => {
       isOpen={showModal}
     >
       {modalInput()}
+      {colorSelect()}
       {buttons()}
     </Modal>
   )
-
+  const colorSelect = () => {
+    const colors = ['#F28779', '#73D0FF', '#FFD580', '#BAE67E']
+    return (
+      <div style={{display: 'flex', flexDirection: 'row', justifyContent:'center'}}>
+        {colors.map(item=>(
+          <div className="pointer" onClick={()=>setColor(item)}>
+          <div style={{backgroundColor: `${item}`, width: 22, height: 22, borderRadius: 20, margin: 25, marginTop: 5}}></div>
+          </div>
+        ))}
+      </div>
+    )
+  }
   const modalInput = () => (
     <div>
       <h2 style={{ marginLeft: 10 }}>Add Team</h2>
