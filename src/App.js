@@ -22,6 +22,7 @@ const App = () => {
   const [showIndex, setShowIndex] = useState([])
   const [items, setItems] = useState([])
   const [isLoading, setLoading] = useState(true)
+  const [isEdit, setEdit] = useState()
 
   const [showModal, setModal] = useState(false)
 
@@ -29,7 +30,7 @@ const App = () => {
     getData()
   }, [])
 
-  
+
 
   const getData = () => {
     firebase
@@ -37,35 +38,61 @@ const App = () => {
       .ref()
       .child("stc-teams")
       .on('value', snap => {
-        
+
         if (snap !== null) {
           const data = snap.val()
-            const list = Object.keys(data).map(key => ({
-              ...data[key],
-              id: key
-            }))
-            setItems(list)
+          const list = Object.keys(data).map(key => ({
+            ...data[key],
+            id: key
+          }))
+          setItems(list)
         }
         setLoading(false)
       })
   }
 
   const onSubmit = () => {
-    setModal(false);
-    const payload = {
-      date: formatDate(date, 'LL', 'it'),
-      title,
-      content,
-      show: true
+    if (date !== "" && title !== "" && content !== "") {
+      setModal(false);
+      const payload = {
+        date: formatDate(date, 'LL', 'it'),
+        title,
+        content,
+        show: true
+      }
+      if (isEdit) {
+        var temp = items
+        temp[isEdit] = payload
+        firebase
+          .database()
+          .ref()
+          .child("stc-teams")
+          .set(temp)
+          .then(ref => {
+            resetData()
+            setEdit(null)
+            setItems(temp)
+          })
+      } else {
+        setItems([payload, ...items].sort(sortFunction))
+        firebase
+          .database()
+          .ref()
+          .child("stc-teams")
+          .push(payload)
+          .then(ref => {
+            resetData()
+          })
+      }
+
     }
-    setItems([payload, ...items])
-    firebase
-      .database()
-      .ref()
-      .child("stc-teams")
-      .push(payload)
-      .then(ref => {
-      })
+
+  }
+
+  const resetData = () => {
+    setDate("")
+    setContent("")
+    setTitle("")
   }
 
   const toggleShow = index => {
@@ -77,7 +104,7 @@ const App = () => {
       .ref()
       .child("stc-teams")
       .set(items)
-      .then(()=>console.log(items))
+      .then(() => console.log(items))
   }
 
   const onDelete = index => {
@@ -89,8 +116,16 @@ const App = () => {
       .ref()
       .child("stc-teams")
       .set(items)
-      .then(()=>console.log(items))
+      .then(() => console.log(items))
 
+  }
+
+  const onEdit = index => {
+    setModal(true)
+    setTitle(items[index].title)
+    setContent(items[index].content)
+    setDate(items[index].date)
+    setEdit(index)
   }
 
   const header = () => (
@@ -101,35 +136,35 @@ const App = () => {
   )
 
   const timeline = () => (
-    <div style={{ alignItems: 'center', display: 'flex'}}>
+    <div style={{ alignItems: 'center', display: 'flex' }}>
       <VerticalTimeline layout="1-column">
         {
-          items.sort(sortFunction).map((item, index) => (
-            <div style={{marginBottom: 30}} >
-              { item.show === false ? 
+          items.map((item, index) => (
+            <div style={{ marginBottom: 30 }} >
+              {item.show === false ?
                 <VerticalTimelineElement
-                style={{ width: '95%' }}
-                date={item.date}
-                iconStyle={{ background: `${item.color}`, color: '#fff' }}
-              >
-                <h1 className="noselect" style={{ color: 'black' }} onClick={() => toggleShow(index)}>{item.title}</h1>
-                <p className="display-linebreak">{item.content}</p>
+                  style={{ width: '95%' }}
+                  date={item.date}
+                  iconStyle={{ background: `${item.color}`, color: '#fff' }}
+                >
+                  <h1 className="noselect" style={{ color: 'black' }} onClick={() => toggleShow(index)}>{item.title}</h1>
+                  <p className="display-linebreak">{item.content}</p>
 
-                <div style={{display: 'flex', flexDirection: 'row'}}>
-                <div style={{margin: 10}} onClick={() => onDelete(index)}><Icon.Trash /></div>
-                <div style={{margin: 10}} onClick={() => onDelete(index)}><Icon.Edit /></div>
-                </div>
-              </VerticalTimelineElement>
-              :
-              <VerticalTimelineElement
-              style={{ width: '95%' }}
-              date={item.date}
-              iconStyle={{ background: `${item.color}`, color: '#fff' }}
-            >
-              <h1 className="noselect" style={{ color: 'black' }} onClick={() => toggleShow(index)}>{item.title}</h1>
-            </VerticalTimelineElement>
+                  <div style={{ display: 'flex', flexDirection: 'row' }}>
+                    <div style={{ margin: 10 }} className="pointer" onClick={() => onDelete(index)}><Icon.Trash /></div>
+                    <div style={{ margin: 10 }} className="pointer" onClick={() => onEdit(index)}><Icon.Edit /></div>
+                  </div>
+                </VerticalTimelineElement>
+                :
+                <VerticalTimelineElement
+                  style={{ width: '95%' }}
+                  date={item.date}
+                  iconStyle={{ background: `${item.color}`, color: '#fff' }}
+                >
+                  <h1 className="noselect" style={{ color: 'black' }} onClick={() => toggleShow(index)}>{item.title}</h1>
+                </VerticalTimelineElement>
               }
-            
+
             </div>
           ))
         }
@@ -182,47 +217,48 @@ const App = () => {
 
   const datepicker = () => (
     <DayPickerInput
+      value={date}
       className="teamInput"
       formatDate={formatDate}
-        parseDate={parseDate}
-        format="LL"
-        placeholder={`${formatDate(new Date(), 'LL', 'it')}`}
-        dayPickerProps={{
-          locale: 'it',
-          localeUtils: MomentLocaleUtils,
-        }}
+      parseDate={parseDate}
+      format="LL"
+      placeholder={`${formatDate(new Date(), 'LL', 'it')}`}
+      dayPickerProps={{
+        locale: 'it',
+        localeUtils: MomentLocaleUtils,
+      }}
       style={{ marginLeft: 10 }}
       onDayChange={day => setDate(day)} />
   )
 
   const buttons = () => (
     <div className="buttonsContainer">
-      <div onClick={() => onSubmit()} className="submitButton">Submit</div>
-      <div onClick={() => setModal(false)}>Back</div>
+      <div className="pointer" onClick={() => onSubmit()} className="submitButton">Submit</div>
+      <div className="pointer" onClick={() => setModal(false)}>Back</div>
     </div>
   )
 
   return (
     <div className="App">
       {!isLoading ?
-        <> 
-        {header()}
-        {timeline()}
-        {fab()}
-        {modal()}
+        <>
+          {header()}
+          {timeline()}
+          {fab()}
+          {modal()}
         </>
-      :
+        :
         <div />
-    }
-      
+      }
+
     </div>
   );
 }
 
 export default App;
 
-function sortFunction(a,b){  
+function sortFunction(a, b) {
   var dateA = new Date(a.date).getTime();
   var dateB = new Date(b.date).getTime();
-  return dateA > dateB ? 1 : -1;  
+  return dateA > dateB ? 1 : -1;
 }; 
