@@ -42,7 +42,6 @@ const App = () => {
           const data = snap.val()
             const list = Object.keys(data).map(key => ({
               ...data[key],
-              show: true,
               id: key
             }))
             setItems(list)
@@ -56,7 +55,8 @@ const App = () => {
     const payload = {
       date: formatDate(date, 'LL', 'it'),
       title,
-      content
+      content,
+      show: true
     }
     setItems([payload, ...items])
     firebase
@@ -71,8 +71,13 @@ const App = () => {
   const toggleShow = index => {
     var temp = items
     temp[index].show = !temp[index].show
-    console.log(JSON.stringify(temp))
-    setItems(items)
+    setItems(temp)
+    firebase
+      .database()
+      .ref()
+      .child("stc-teams")
+      .set(items)
+      .then(()=>console.log(items))
   }
 
   const onDelete = index => {
@@ -101,14 +106,15 @@ const App = () => {
         {
           items.sort(sortFunction).map((item, index) => (
             <div style={{marginBottom: 30}} >
-              { item.show === true ? 
+              { item.show === false ? 
                 <VerticalTimelineElement
                 style={{ width: '95%' }}
                 date={item.date}
                 iconStyle={{ background: `${item.color}`, color: '#fff' }}
               >
-                <h1 className="noselect" style={{ color: 'black' }}>{item.title}</h1>
+                <h1 className="noselect" style={{ color: 'black' }} onClick={() => toggleShow(index)}>{item.title}</h1>
                 <p className="display-linebreak">{item.content}</p>
+
                 <div style={{display: 'flex', flexDirection: 'row'}}>
                 <div style={{margin: 10}} onClick={() => onDelete(index)}><Icon.Trash /></div>
                 <div style={{margin: 10}} onClick={() => onDelete(index)}><Icon.Edit /></div>
@@ -120,8 +126,7 @@ const App = () => {
               date={item.date}
               iconStyle={{ background: `${item.color}`, color: '#fff' }}
             >
-              <h1 className="noselect" style={{ color: 'black' }}>{item.title}</h1>
-              <div style={{marginBottom: 30}} onClick={() => toggleShow(index)} > show more </div>
+              <h1 className="noselect" style={{ color: 'black' }} onClick={() => toggleShow(index)}>{item.title}</h1>
             </VerticalTimelineElement>
               }
             
