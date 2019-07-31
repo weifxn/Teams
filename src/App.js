@@ -1,3 +1,8 @@
+// TODO: 
+// - Error handling
+// - 
+
+
 import React, { useState, useEffect } from 'react';
 import logo from './assets/stc-logo.svg';
 import './App.css';
@@ -16,7 +21,7 @@ import MomentLocaleUtils, {
 } from 'react-day-picker/moment';
 
 const App = () => {
-  const [date, setDate] = useState()
+  const [date, setDate] = useState(formatDate(new Date(), 'LL', 'it'))
   const [title, setTitle] = useState()
   const [content, setContent] = useState()
   const [showIndex, setShowIndex] = useState([])
@@ -25,6 +30,8 @@ const App = () => {
   const [isEdit, setEdit] = useState()
   const [color, setColor] = useState('#F28779')
   const [showModal, setModal] = useState(false)
+  const [showDelModal, setDelModal] = useState(false)
+  const [delIndex, setDelIndex] = useState()
 
   useEffect(() => {
     getData()
@@ -106,10 +113,10 @@ const App = () => {
       .ref()
       .child("stc-teams")
       .set(items)
-      .then(() => console.log(items))
   }
 
   const onDelete = index => {
+    setDelIndex(false)
     var temp = items
     temp.splice(index, 1)
     setItems(temp)
@@ -118,8 +125,11 @@ const App = () => {
       .ref()
       .child("stc-teams")
       .set(items)
-      .then(() => console.log(items))
+  }
 
+  const onConfirmDel = index => {
+    setDelIndex(index)
+    setDelModal(true)
   }
 
   const onEdit = index => {
@@ -150,10 +160,10 @@ const App = () => {
                   iconStyle={{ background: `${item.color}`, color: '#000', height: 20, width: 20, margin: 10 }}
                 >
                   <h1 className="noselect" style={{ color: 'black' }} onClick={() => toggleShow(index)}>{item.title}</h1>
-                  <p className="display-linebreak">{item.content}</p>
+                  <p style={{ fontSize: 18 }} className="display-linebreak">{item.content}</p>
 
                   <div style={{ display: 'flex', flexDirection: 'row' }}>
-                    <div style={{ margin: 10 }} className="pointer" onClick={() => onDelete(index)}><Icon.Trash /></div>
+                    <div style={{ margin: 10 }} className="pointer" onClick={() => onConfirmDel(index)}><Icon.Trash /></div>
                     <div style={{ margin: 10 }} className="pointer" onClick={() => onEdit(index)}><Icon.Edit /></div>
                   </div>
                 </VerticalTimelineElement>
@@ -196,13 +206,31 @@ const App = () => {
       {buttons()}
     </Modal>
   )
+
+  const delModal = () => (
+    <Modal
+      className="Modal"
+      overlayClassName="Overlay"
+      isOpen={showDelModal}
+    >
+      <div style={{ margin: 20, marginBottom: 40 }}>
+        Are you sure you want to delete?
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'horizontal', justifyContent: 'center' }}>
+        <div className="pointer" onClick={() => setDelModal(false)}>Back</div>
+        <div style={{ margin: 20 }} />
+        <div className="pointer" onClick={() => onDelete(delIndex)}>Confirm</div>
+      </div>
+    </Modal >
+  )
+
   const colorSelect = () => {
     const colors = ['#F28779', '#73D0FF', '#FFD580', '#BAE67E']
     return (
-      <div style={{display: 'flex', flexDirection: 'row', justifyContent:'center'}}>
-        {colors.map(item=>(
-          <div className="pointer" onClick={()=>setColor(item)}>
-          <div style={{backgroundColor: `${item}`, width: 22, height: 22, borderRadius: 20, margin: 25, marginTop: 5}}></div>
+      <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'center' }}>
+        {colors.map(item => (
+          <div className="pointer" onClick={() => setColor(item)}>
+            <div style={{ backgroundColor: `${item}`, width: 22, height: 22, borderRadius: 20, margin: 25, marginTop: 5 }}></div>
           </div>
         ))}
       </div>
@@ -247,7 +275,7 @@ const App = () => {
 
   const buttons = () => (
     <div className="buttonsContainer">
-      <div className="pointer" onClick={() => onSubmit()} className="submitButton">Submit</div>
+      <div className="pointer submitButton" onClick={() => onSubmit()} >Submit</div>
       <div className="pointer" onClick={() => setModal(false)}>Back</div>
     </div>
   )
@@ -260,6 +288,7 @@ const App = () => {
           {timeline()}
           {fab()}
           {modal()}
+          {delModal()}
         </>
         :
         <div />
